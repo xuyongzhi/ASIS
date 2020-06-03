@@ -7,7 +7,9 @@ Upadted by Yue Wang and Yongbin Sun
 """
 
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 def _variable_on_cpu(name, shape, initializer, use_fp16=False, trainable=True):
   """Helper to create a Variable stored on CPU memory.
@@ -41,7 +43,9 @@ def _variable_with_weight_decay(name, shape, stddev, wd, use_xavier=True):
     Variable Tensor
   """
   if use_xavier:
-    initializer = tf.contrib.layers.xavier_initializer()
+    #initializer = tf.contrib.layers.xavier_initializer()
+    #initializer = tf.initializers.GlorotUniform()
+    initializer = tf.truncated_normal_initializer(stddev=stddev)
   else:
     initializer = tf.truncated_normal_initializer(stddev=stddev)
   var = _variable_on_cpu(name, shape, initializer)
@@ -282,7 +286,7 @@ def conv2d_transpose(inputs,
                                            stddev=stddev,
                                            wd=weight_decay)
       stride_h, stride_w = stride
-      
+
       # from slim.convolution2d_transpose
       def get_deconv_dim(dim_size, stride_size, kernel_size, padding):
           dim_size *= stride_size
@@ -314,7 +318,7 @@ def conv2d_transpose(inputs,
         outputs = activation_fn(outputs)
       return outputs
 
-   
+
 
 def conv3d(inputs,
            num_output_channels,
@@ -367,7 +371,7 @@ def conv3d(inputs,
     biases = _variable_on_cpu('biases', [num_output_channels],
                               tf.constant_initializer(0.0))
     outputs = tf.nn.bias_add(outputs, biases)
-    
+
     if bn:
       outputs = batch_norm_for_conv3d(outputs, is_training,
                                       bn_decay=bn_decay, scope='bn', is_dist=is_dist)
@@ -388,11 +392,11 @@ def fully_connected(inputs,
                     is_training=None,
                     is_dist=False):
   """ Fully connected layer with non-linear operation.
-  
+
   Args:
     inputs: 2-D tensor BxN
     num_outputs: int
-  
+
   Returns:
     Variable tensor of size B x num_outputs.
   """
@@ -407,7 +411,7 @@ def fully_connected(inputs,
     biases = _variable_on_cpu('biases', [num_outputs],
                              tf.constant_initializer(0.0))
     outputs = tf.nn.bias_add(outputs, biases)
-     
+
     if bn:
       outputs = batch_norm_for_fc(outputs, is_training, bn_decay, 'bn', is_dist=is_dist)
 
@@ -427,7 +431,7 @@ def max_pool2d(inputs,
     inputs: 4-D tensor BxHxWxC
     kernel_size: a list of 2 ints
     stride: a list of 2 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -452,7 +456,7 @@ def avg_pool2d(inputs,
     inputs: 4-D tensor BxHxWxC
     kernel_size: a list of 2 ints
     stride: a list of 2 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -478,7 +482,7 @@ def max_pool3d(inputs,
     inputs: 5-D tensor BxDxHxWxC
     kernel_size: a list of 3 ints
     stride: a list of 3 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -503,7 +507,7 @@ def avg_pool3d(inputs,
     inputs: 5-D tensor BxDxHxWxC
     kernel_size: a list of 3 ints
     stride: a list of 3 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -524,7 +528,7 @@ def avg_pool3d(inputs,
 def batch_norm_template(inputs, is_training, scope, moments_dims, bn_decay):
   """ Batch normalization on convolutional maps and beyond...
   Ref.: http://stackoverflow.com/questions/33949786/how-could-i-use-batch-normalization-in-tensorflow
-  
+
   Args:
       inputs:        Tensor, k-D input ... x C could be BC or BHWC or BDHWC
       is_training:   boolean tf.Varialbe, true indicates training phase
@@ -547,12 +551,12 @@ def batch_norm_template(inputs, is_training, scope, moments_dims, bn_decay):
     ema_apply_op = tf.cond(is_training,
                            lambda: ema.apply([batch_mean, batch_var]),
                            lambda: tf.no_op())
-    
+
     # Update moving average and return current batch's avg and var.
     def mean_var_with_update():
       with tf.control_dependencies([ema_apply_op]):
         return tf.identity(batch_mean), tf.identity(batch_var)
-    
+
     # ema.average returns the Variable holding the average of var.
     mean, var = tf.cond(is_training,
                         mean_var_with_update,
@@ -583,7 +587,7 @@ def batch_norm_dist_template(inputs, is_training, scope, moments_dims, bn_decay)
     def train_bn_op():
       batch_mean, batch_var = tf.nn.moments(inputs, moments_dims, name='moments')
       decay = bn_decay if bn_decay is not None else 0.9
-      train_mean = tf.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay)) 
+      train_mean = tf.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay))
       train_var = tf.assign(pop_var, pop_var * decay + batch_var * (1 - decay))
       with tf.control_dependencies([train_mean, train_var]):
         return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, gamma, 1e-3)
@@ -600,7 +604,7 @@ def batch_norm_dist_template(inputs, is_training, scope, moments_dims, bn_decay)
 
 def batch_norm_for_fc(inputs, is_training, bn_decay, scope, is_dist=False):
   """ Batch normalization on FC data.
-  
+
   Args:
       inputs:      Tensor, 2D BxC input
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -618,7 +622,7 @@ def batch_norm_for_fc(inputs, is_training, bn_decay, scope, is_dist=False):
 
 def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope, is_dist=False):
   """ Batch normalization on 1D convolutional maps.
-  
+
   Args:
       inputs:      Tensor, 3D BLC input maps
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -635,10 +639,10 @@ def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope, is_dist=False):
 
 
 
-  
+
 def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope, is_dist=False):
   """ Batch normalization on 2D convolutional maps.
-  
+
   Args:
       inputs:      Tensor, 4D BHWC input maps
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -657,7 +661,7 @@ def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope, is_dist=False):
 
 def batch_norm_for_conv3d(inputs, is_training, bn_decay, scope, is_dist=False):
   """ Batch normalization on 3D convolutional maps.
-  
+
   Args:
       inputs:      Tensor, 5D BDHWC input maps
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -710,7 +714,7 @@ def pairwise_distance(point_cloud):
   point_cloud = tf.squeeze(point_cloud)
   if og_batch_size == 1:
     point_cloud = tf.expand_dims(point_cloud, 0)
-    
+
   point_cloud_transpose = tf.transpose(point_cloud, perm=[0, 2, 1])
   point_cloud_inner = tf.matmul(point_cloud, point_cloud_transpose)
   point_cloud_inner = -2*point_cloud_inner
@@ -726,10 +730,10 @@ def pairwise_distance_l1(point_cloud):
   pairwise_distance = []
   for idx in range(og_batch_size):
     idx_point_cloud = point_cloud[idx, :, :]
-    l1 = tf.reduce_sum(tf.abs(tf.subtract(idx_point_cloud, tf.expand_dims(idx_point_cloud, 1))), 
+    l1 = tf.reduce_sum(tf.abs(tf.subtract(idx_point_cloud, tf.expand_dims(idx_point_cloud, 1))),
                         axis=2)
     pairwise_distance.append(l1)
-  return tf.stack(pairwise_distance, axis=0) 
+  return tf.stack(pairwise_distance, axis=0)
 
 def knn(adj_matrix, k=20):
   """Get KNN based on the pairwise distance.
@@ -767,7 +771,7 @@ def knn_thres(adj_matrix, k=20, thres=0.5):
     idx_nn_idx = nn_idx[idx, :, :]
     mask = tf.cast(idx_vals < -1*thres, tf.int32) # [N, K]
     idx_to_add = to_add * mask
-    idx_nn_idx = idx_nn_idx * (1 - mask) + idx_to_add 
+    idx_nn_idx = idx_nn_idx * (1 - mask) + idx_to_add
     final_nn_idx.append(idx_nn_idx)
 
   return tf.stack(final_nn_idx, axis=0)
@@ -795,7 +799,7 @@ def get_local_feature(point_cloud, nn_idx, k=20):
   num_dims = point_cloud_shape[2].value
 
   idx_ = tf.range(batch_size) * num_points
-  idx_ = tf.reshape(idx_, [batch_size, 1, 1]) 
+  idx_ = tf.reshape(idx_, [batch_size, 1, 1])
 
   point_cloud_flat = tf.reshape(point_cloud, [-1, num_dims])
   point_cloud_neighbors = tf.gather(point_cloud_flat, nn_idx+idx_)
@@ -827,7 +831,7 @@ def get_edge_feature(point_cloud, nn_idx, k=20):
   num_dims = point_cloud_shape[2].value
 
   idx_ = tf.range(batch_size) * num_points
-  idx_ = tf.reshape(idx_, [batch_size, 1, 1]) 
+  idx_ = tf.reshape(idx_, [batch_size, 1, 1])
 
   point_cloud_flat = tf.reshape(point_cloud, [-1, num_dims])
   point_cloud_neighbors = tf.gather(point_cloud_flat, nn_idx+idx_)

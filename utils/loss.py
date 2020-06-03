@@ -2,9 +2,12 @@ import os
 import sys
 import tensorflow as tf
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-sys.path.append(BASE_DIR) 
-sys.path.append(os.path.join(BASE_DIR, 'utils')) 
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+sys.path.append(os.path.join(BASE_DIR, 'utils'))
 
 
 def discriminative_loss_single(prediction, correct_label, feature_dim,
@@ -30,7 +33,7 @@ def discriminative_loss_single(prediction, correct_label, feature_dim,
 
     counts = tf.cast(counts, tf.float32)
     num_instances = tf.size(unique_labels)
-    
+
 
     segmented_sum = tf.unsorted_segment_sum(reshaped_pred, unique_id, num_instances)
 
@@ -93,7 +96,7 @@ def discriminative_loss_single(prediction, correct_label, feature_dim,
     def rt_0(): return 0.
     def rt_l_dist(): return l_dist
     l_dist = tf.cond(tf.equal(1, num_instances), rt_0, rt_l_dist)
-    
+
     ### Calculate l_reg
     l_reg = tf.reduce_mean(tf.norm(mu, ord=1, axis=1))
 

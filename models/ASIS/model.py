@@ -3,11 +3,14 @@ import sys
 BASE_DIR = os.path.dirname(__file__)
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, '../utils'))
-import tensorflow as tf
+#import tensorflow as tf
 import numpy as np
 import tf_util
 from pointnet_util import pointnet_sa_module, pointnet_fp_module
 from loss import *
+
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 def placeholder_inputs(batch_size, num_point):
     pointclouds_pl = tf.placeholder(tf.float32, shape=(batch_size, num_point, 9))
@@ -39,7 +42,7 @@ def get_model(point_cloud, is_training, num_class, bn_decay=None):
 
     # FC layers
     net_sem = tf_util.conv1d(l0_points_sem, 128, 1, padding='VALID', bn=True, is_training=is_training, scope='sem_fc1', bn_decay=bn_decay)
-    net_sem_cache = tf_util.conv1d(net_sem, 128, 1, padding='VALID', bn=True, is_training=is_training, scope='sem_cache',  bn_decay=bn_decay)  
+    net_sem_cache = tf_util.conv1d(net_sem, 128, 1, padding='VALID', bn=True, is_training=is_training, scope='sem_cache',  bn_decay=bn_decay)
 
     # ins
     l3_points_ins = pointnet_fp_module(l3_xyz, l4_xyz, l3_points, l4_points, [256,256], is_training, bn_decay, scope='ins_fa_layer1')
@@ -64,7 +67,7 @@ def get_model(point_cloud, is_training, num_class, bn_decay=None):
     net_sem = tf_util.dropout(net_sem, keep_prob=0.5, is_training=is_training, scope='sem_dp1')
     net_sem = tf_util.conv1d(net_sem, num_class, 1, padding='VALID', activation_fn=None, scope='sem_fc4')
 
-    
+
     return net_sem, net_ins
 
 
@@ -84,7 +87,7 @@ def get_loss(pred, ins_label, pred_sem_label, pred_sem, sem_label):
     param_var = 1.
     param_dist = 1.
     param_reg = 0.001
-    
+
     disc_loss, l_var, l_dist, l_reg = discriminative_loss(pred, ins_label, feature_dim,
                                          delta_v, delta_d, param_var, param_dist, param_reg)
 
